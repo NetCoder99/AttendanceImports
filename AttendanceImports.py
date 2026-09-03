@@ -1,10 +1,13 @@
 # ---------------------------------------------------------------------------------------------------------------------
 # sqlacodegen sqlite:///C:\Users\jdugger01\AppData\Roaming\Attendance\AttendanceV3.db --tables students
+# sqlacodegen sqlite:///C:\Users\jdugger01\AppData\Roaming\Attendance\AttendanceV2_20260612.db --tables students
 # ---------------------------------------------------------------------------------------------------------------------
 
 import logging
 import logging.config
 import loggingConf
+from imports.check_ranks import checkStudentRanks
+from imports.import_attendance import importAttendanceRecords
 
 from imports.import_students import importStudents
 
@@ -17,7 +20,9 @@ if __name__ == '__main__':
         logging.basicConfig(filename='AttendanceImports.log', level=logging.INFO)
         logger.info('-----------------------------------------------------------------')
         logger.info('AttendanceImports - Started')
-        importStudents("AttendanceV2_20260612.db", "AttendanceV3.db")
-        logger.info('AttendanceImports - Started')
+        # importStudents("AttendanceV2_20260612.db", "AttendanceV3.db")
+        # importAttendanceRecords("AttendanceV2_20260612.db", "AttendanceV3.db")
+        checkStudentRanks()
+        logger.info('AttendanceImports - Finished')
     except Exception as ex:
         logger.error(f'AttendanceImports - Failed : {str(ex)}')

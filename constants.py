@@ -2,7 +2,8 @@ applicationName = "AttendanceImports"
 #-----------------------------------------------------------
 # Date and Time format strings
 #-----------------------------------------------------------
-fmtDateTime = "%Y-%m-%d %H:%M:%S"
+fmtDateTime  = "%Y-%m-%d %H:%M:%S"
+fmtDateTime2 = "%Y-%m-%d %H:%M:00"
 fmtDate     = "%m/%d/%Y"
 fmtTime     = "%I:%M %p"
 
