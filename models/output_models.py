@@ -16,7 +16,6 @@ class StudentRankFields(BaseModel):
     attendanceCount : AttendanceCounts | None = None
     rankMessage : str
 
-
 class NewPromotionRecord(BaseModel):
     badge_number: int
     belt_id : int
@@ -26,6 +25,10 @@ class NewPromotionRecord(BaseModel):
     promotion_date: datetime.datetime
     comments : str = ''
     post_flag: bool = False
+
+class StudentImageDetails(BaseModel):
+    badge_number: int
+    image_type  : str
 
 
 

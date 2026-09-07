@@ -21,8 +21,11 @@ def importAttendanceRecords(srce_db_name: str, dest_db_name: str):
         db_session_srce = getAlchemySession(srce_db_name)
         db_session_dest = getAlchemySession(dest_db_name)
 
-        # attendance_list_stmt = select(SrceAttendance).where(SrceAttendance.badgeNumber == '1006') .order_by(SrceAttendance.badgeNumber)
-        attendance_list_stmt = select(SrceAttendance).order_by(SrceAttendance.badgeNumber)
+        attendance_list_stmt = (select(SrceAttendance)
+                                .where(SrceAttendance.badgeNumber == '1006')
+                                .order_by(SrceAttendance.attendance_id)
+                                )
+        # attendance_list_stmt = select(SrceAttendance).order_by(SrceAttendance.badgeNumber)
         # attendance_list_stmt = select(SrceAttendance).group_by(SrceAttendance.badgeNumber, SrceAttendance.checkinDateTime).order_by(SrceAttendance.badgeNumber)
 
         attendance_list = db_session_srce.scalars(attendance_list_stmt).all()
@@ -36,6 +39,12 @@ def importAttendanceRecords(srce_db_name: str, dest_db_name: str):
             )
             if len(attendance_records_dest) == 0:
                 import_counts['records_inserted'] = import_counts['records_inserted'] + 1
+                new_attendance_record = GetNewAttendanceRecord(
+                    db_session_dest,
+                    attendance_record_srce
+                )
+                db_session_dest.add(new_attendance_record)
+                db_session_dest.commit()
                 logger.info(f'insert   : '
                             f'{attendance_record_srce.attendance_id} : '
                             f'{attendance_record_srce.badgeNumber} : '
@@ -122,3 +131,35 @@ def GetCrntAttendanceRecord(db_session, badge_number: int, checkin_datetime: str
     #     logger.info(f'search params: {badge_number} : {checkin_datetime}')
 
     return rtn_list  #db_session.scalars(attendance_stmt).all()
+
+# -----------------------------------------------------------------------------------
+# commonly used function to get the student record
+# -----------------------------------------------------------------------------------
+def GetNewAttendanceRecord(db_session, attendance_record_srce: SrceAttendance) -> Attendance:
+    new_attendance_record = Attendance()
+    new_attendance_record.badgeNumber = attendance_record_srce.badgeNumber
+    # new_attendance_record.attendance_id     =
+    # new_attendance_record.badgeNumber       =
+
+    temp_checkin_datetime = parse(attendance_record_srce.checkinDateTime, fuzzy=False)
+    new_attendance_record.checkinDateTime   = temp_checkin_datetime.strftime(constants.fmtDateTime)
+    new_attendance_record.checkinDate       = temp_checkin_datetime.strftime(constants.fmtDate)
+    new_attendance_record.checkinTime       = temp_checkin_datetime.strftime(constants.fmtTime)
+
+    student_name_parts = attendance_record_srce.studentName.split()
+
+    new_attendance_record.studentFirstName  = student_name_parts[0]
+    new_attendance_record.studentLastName   = student_name_parts[1] if len(student_name_parts) else ''
+    new_attendance_record.studentStatus     = attendance_record_srce.studentStatus
+    # new_attendance_record.studentRankNum    = attendance_record_srce.rankName
+    new_attendance_record.studentRankName   = attendance_record_srce.rankName
+    # new_attendance_record.studentStripeId   =
+    # new_attendance_record.studentStripeName =
+    # new_attendance_record.classNum          =
+
+    temp_start_time = attendance_record_srce.studentName.split('@')
+    new_attendance_record.className         = attendance_record_srce.className
+    # new_attendance_record.classStartTime    =
+    # new_attendance_record.styleNum          =
+    # new_attendance_record.appliesPromotion  =
+    return new_attendance_record

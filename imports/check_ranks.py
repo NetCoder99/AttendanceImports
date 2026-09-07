@@ -150,6 +150,32 @@ def GetAttendanceTotal(badge_number: int) -> int:
     return db_session.scalar(attendance_total_stmt)
 
 # ---------------------------------------------------------------------------------------
+def GetBasedOnAttendanceTotalCountSrce(db_session_srce, student_record: Students) -> StudentRankFields:
+    try:
+        student_rank      = StudentRankFields.construct()
+        total_attendance_count = GetAttendanceTotalSrce(db_session_srce, student_record.badgeNumber)
+        requirement_record = (
+            db_session.scalars(select(Requirements)
+                               .where(Requirements.requiredClasses <= total_attendance_count)
+                               .order_by(Requirements.beltId.desc(), Requirements.promotionSeqNum.desc()))
+            .first()
+        )
+        student_rank.currentRankNum    = requirement_record.beltId
+        student_rank.currentRankName   = requirement_record.beltTitle
+        student_rank.currentStripeId   = requirement_record.stripeId
+        student_rank.currentStripeName = requirement_record.stripeTitle
+        student_rank.rankMessage = "From total attendance"
+        return student_rank
+    except Exception as ex:
+        print(f'Error: {str(ex)}')
+        raise ex
+def GetAttendanceTotalSrce(db_session_srce, badge_number: int) -> int:
+    attendance_total_stmt = (select(func.count())
+                             .select_from(SrceAttendance)
+                             .where(SrceAttendance.badgeNumber == badge_number))
+    return db_session_srce.scalar(attendance_total_stmt)
+
+# ---------------------------------------------------------------------------------------
 def GetPromotionRecords(badge_number: int) -> list[Promotions]:
     promotion_query_stmt = (select(Promotions)
                             .where(Promotions.badgeNumber == badge_number)
