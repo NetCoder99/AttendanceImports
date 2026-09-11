@@ -4,8 +4,10 @@ applicationName = "AttendanceImports"
 #-----------------------------------------------------------
 fmtDateTime  = "%Y-%m-%d %H:%M:%S"
 fmtDateTime2 = "%Y-%m-%d %H:%M:00"
+fmtDateTime3 = "%Y-%m-%d %I:%M %p"
 fmtDate     = "%m/%d/%Y"
 fmtTime     = "%I:%M %p"
+dayNameAbbr = "%a"
 
 tables = [
     'assets'

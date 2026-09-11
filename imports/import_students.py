@@ -3,7 +3,7 @@ import logging
 from datetime import datetime
 
 from dateutil.parser import parse
-from sqlalchemy import select, inspect
+from sqlalchemy import select, inspect, func
 
 import constants
 from imports.check_ranks import GetCrntStudentRank, GetBasedOnAttendanceTotalCountSrce
@@ -25,7 +25,7 @@ def importStudents(srce_db_name: str, dest_db_name: str):
     global db_session_srce
     global db_session_dest
     excep_list    = []
-    import_counts = {'records_read' : 0, 'records_inserted' : 0, 'records_updated' : 0, 'records_error' : 0 }
+    import_counts = {'import_table': 'Students', 'records_read' : 0, 'records_inserted' : 0, 'records_updated' : 0, 'records_error' : 0 }
     try:
         srce_db = getDbPath(srce_db_name)
         dest_db = getDbPath(dest_db_name)
@@ -37,13 +37,19 @@ def importStudents(srce_db_name: str, dest_db_name: str):
 
         for student_record_srce in db_session_srce.query(SrceStudents):
             student_record_dest = GetCrntStudentRecord(db_session_dest, student_record_srce.badgeNumber)
-            if not student_record_dest:
+            student_record_dupe = GetCrntStudentRecordByName(db_session_dest, student_record_srce.firstName, student_record_srce.lastName)
+
+            if student_record_dupe and student_record_dest:
+                logger.info(f'updating student both found: {student_record_srce.badgeNumber}')
+                import_counts['records_updated'] = import_counts['records_updated'] + 1
+            elif not student_record_dupe and not student_record_dest:
                 new_student_record = GetNewStudentRecord(student_record_srce)
-                logger.info(f'inserting student: {student_record_srce.badgeNumber}')
+                logger.info(f'inserting student both missing: {student_record_srce.badgeNumber}')
                 db_session_dest.add(new_student_record)
                 db_session_dest.commit()
                 import_counts['records_inserted'] = import_counts['records_inserted'] + 1
-
+            else:
+                logger.error(f'failed dest search: {student_record_srce.badgeNumber}')
             # else:
             #     ValidateStudentFields(student_record_srce, student_record_dest)
             #     inspected = inspect(student_record_dest)
@@ -132,7 +138,8 @@ def ValidateStudentFields(student_record_srce: SrceStudents, student_record_dest
             student_record_dest.createDateTime = datetime.now().strftime(constants.fmtDateTime)
 
 
-
+    # if student_record_srce.currentRank != student_record_dest.currentRankNum:
+    #     logger.info(f'updating student rank: {student_record_srce.badgeNumber} : {student_record_srce.currentRank}')
 
 
 # -----------------------------------------------------------------------------------
@@ -142,12 +149,19 @@ def DisplayOldAndNewValues(student_record_dest: Students):
         print(f"Column name: {column.key}, Is Modified: {column.state.modified}")
 
 # -----------------------------------------------------------------------------------
-# commonly used function to get the student record
-# -----------------------------------------------------------------------------------
 def GetCrntStudentRecord(db_session, badge_number: int) -> Students:
     student_list_stmt = select(Students).where(Students.badgeNumber == badge_number)
     return db_session.scalars(student_list_stmt).first()
 
+def GetCrntStudentRecordByName(db_session, first_name: str, last_name: str) -> Students:
+    student_list_stmt = (select(Students)
+                         .where(func.lower(func.trim(Students.firstName)).ilike(first_name.strip()),
+                                func.lower(func.trim(Students.lastName)).ilike(last_name.strip())
+                                )
+                         )
+    return db_session.scalars(student_list_stmt).first()
+
+# -----------------------------------------------------------------------------------
 def GetImageDetails(badge_number: int, studentImageBytes: bytes) -> StudentImageDetails:
     try:
         student_image_details = StudentImageDetails.construct()

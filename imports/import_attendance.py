@@ -1,4 +1,5 @@
 import logging
+import traceback
 from datetime import datetime
 
 from dateutil.parser import parse
@@ -6,6 +7,7 @@ from sqlalchemy import select, inspect
 
 import constants
 from imports.import_common import getImportSession, cloneRecord
+from imports.schedule_procs import GetCurrentClass
 from models.data_models import Students, Attendance
 from models.srce_models import SrceStudents, SrceAttendance
 from sqlite.sqlite_alchemy import getAlchemySession
@@ -15,17 +17,17 @@ logger = logging.getLogger(__name__)
 
 def importAttendanceRecords(srce_db_name: str, dest_db_name: str):
     excep_list    = []
-    import_counts = {'records_read' : 0, 'records_inserted' : 0, 'records_updated' : 0, 'records_error' : 0 }
+    import_counts = {'import_table': 'Students', 'records_read' : 0, 'records_inserted' : 0, 'records_updated' : 0, 'records_error' : 0 }
     attendance_count_srce = 0
     try:
         db_session_srce = getAlchemySession(srce_db_name)
         db_session_dest = getAlchemySession(dest_db_name)
 
-        attendance_list_stmt = (select(SrceAttendance)
-                                .where(SrceAttendance.badgeNumber == '1006')
-                                .order_by(SrceAttendance.attendance_id)
-                                )
-        # attendance_list_stmt = select(SrceAttendance).order_by(SrceAttendance.badgeNumber)
+        # attendance_list_stmt = (select(SrceAttendance)
+        #                         .where(SrceAttendance.badgeNumber == '10083')
+        #                         .order_by(SrceAttendance.attendance_id)
+        #                         )
+        attendance_list_stmt = select(SrceAttendance).order_by(SrceAttendance.badgeNumber)
         # attendance_list_stmt = select(SrceAttendance).group_by(SrceAttendance.badgeNumber, SrceAttendance.checkinDateTime).order_by(SrceAttendance.badgeNumber)
 
         attendance_list = db_session_srce.scalars(attendance_list_stmt).all()
@@ -136,30 +138,41 @@ def GetCrntAttendanceRecord(db_session, badge_number: int, checkin_datetime: str
 # commonly used function to get the student record
 # -----------------------------------------------------------------------------------
 def GetNewAttendanceRecord(db_session, attendance_record_srce: SrceAttendance) -> Attendance:
-    new_attendance_record = Attendance()
-    new_attendance_record.badgeNumber = attendance_record_srce.badgeNumber
-    # new_attendance_record.attendance_id     =
-    # new_attendance_record.badgeNumber       =
+    try:
+        new_attendance_record = Attendance()
+        new_attendance_record.badgeNumber = attendance_record_srce.badgeNumber
+        # new_attendance_record.attendance_id     =
+        # new_attendance_record.badgeNumber       =
 
-    temp_checkin_datetime = parse(attendance_record_srce.checkinDateTime, fuzzy=False)
-    new_attendance_record.checkinDateTime   = temp_checkin_datetime.strftime(constants.fmtDateTime)
-    new_attendance_record.checkinDate       = temp_checkin_datetime.strftime(constants.fmtDate)
-    new_attendance_record.checkinTime       = temp_checkin_datetime.strftime(constants.fmtTime)
+        temp_checkin_datetime = parse(attendance_record_srce.checkinDateTime, fuzzy=False)
+        new_attendance_record.checkinDateTime   = temp_checkin_datetime.strftime(constants.fmtDateTime)
+        new_attendance_record.checkinDate       = temp_checkin_datetime.strftime(constants.fmtDate)
+        new_attendance_record.checkinTime       = temp_checkin_datetime.strftime(constants.fmtTime)
 
-    student_name_parts = attendance_record_srce.studentName.split()
+        student_name_parts = attendance_record_srce.studentName.split()
 
-    new_attendance_record.studentFirstName  = student_name_parts[0]
-    new_attendance_record.studentLastName   = student_name_parts[1] if len(student_name_parts) else ''
-    new_attendance_record.studentStatus     = attendance_record_srce.studentStatus
-    # new_attendance_record.studentRankNum    = attendance_record_srce.rankName
-    new_attendance_record.studentRankName   = attendance_record_srce.rankName
-    # new_attendance_record.studentStripeId   =
-    # new_attendance_record.studentStripeName =
-    # new_attendance_record.classNum          =
+        new_attendance_record.studentFirstName  = student_name_parts[0]
+        new_attendance_record.studentLastName   = student_name_parts[1] if len(student_name_parts) else ''
+        new_attendance_record.studentStatus     = attendance_record_srce.studentStatus
+        # new_attendance_record.studentRankNum    = attendance_record_srce.rankName
+        new_attendance_record.studentRankName   = attendance_record_srce.rankName
+        # new_attendance_record.studentStripeId   =
+        # new_attendance_record.studentStripeName =
+        # new_attendance_record.classNum          =
 
-    temp_start_time = attendance_record_srce.studentName.split('@')
-    new_attendance_record.className         = attendance_record_srce.className
-    # new_attendance_record.classStartTime    =
-    # new_attendance_record.styleNum          =
-    # new_attendance_record.appliesPromotion  =
-    return new_attendance_record
+        #temp_start_time = attendance_record_srce.studentName.split('@')
+        selected_class = GetCurrentClass(temp_checkin_datetime)
+        if selected_class:
+            new_attendance_record.classNum          = selected_class.classNum
+            new_attendance_record.className         = selected_class.className
+            new_attendance_record.classStartTime    = selected_class.classStartTime
+            new_attendance_record.styleNum          = selected_class.styleNum
+            new_attendance_record.styleName         = selected_class.styleName
+        else:
+            logger.info(f'No class found: {temp_checkin_datetime.strftime(constants.fmtDateTime)}')
+        # new_attendance_record.appliesPromotion  =
+        return new_attendance_record
+    except Exception as ex:
+        traceback.print_exc()
+        logger.error(str(ex))
+        raise ex
