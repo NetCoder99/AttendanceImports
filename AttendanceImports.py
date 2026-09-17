@@ -21,6 +21,9 @@ if __name__ == '__main__':
         logger.info('-----------------------------------------------------------------')
         logger.info('AttendanceImports - Started')
 
+        srce_database = "AttendanceV2_20260911.db"
+        dest_database = "AttendanceV3.db"
+
         student_import_stats =  importStudents("AttendanceV2_20260911.db", "AttendanceV3.db")
         logger.info(f'{student_import_stats}')
         attendance_import_stats = importAttendanceRecords("AttendanceV2_20260911.db", "AttendanceV3.db")
