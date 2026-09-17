@@ -5,6 +5,8 @@
 import json
 import logging
 import logging.config
+
+import constants
 import loggingConf
 from imports.check_ranks import checkStudentRanks
 from imports.import_attendance import importAttendanceRecords
@@ -21,15 +23,12 @@ if __name__ == '__main__':
         logger.info('-----------------------------------------------------------------')
         logger.info('AttendanceImports - Started')
 
-        srce_database = "AttendanceV2_20260911.db"
-        dest_database = "AttendanceV3.db"
-
-        student_import_stats =  importStudents("AttendanceV2_20260911.db", "AttendanceV3.db")
+        student_import_stats =  importStudents(constants.srceDatabase, constants.descDatabase)
         logger.info(f'{student_import_stats}')
         attendance_import_stats = importAttendanceRecords("AttendanceV2_20260911.db", "AttendanceV3.db")
         logger.info(f'{attendance_import_stats}')
 
-        # checkStudentRanks()
+        #checkStudentRanks()
         logger.info('AttendanceImports - Finished')
     except Exception as ex:
         logger.error(f'AttendanceImports - Failed : {str(ex)}')

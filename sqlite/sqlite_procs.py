@@ -1,5 +1,6 @@
 import os
 import platform
+from pathlib import Path
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -11,6 +12,12 @@ def getDbPath(db_name: str = 'AttendanceV3.db'):
     if platform.system() == 'Windows':
         return os.path.join(os.getenv('APPDATA'), 'Attendance', db_name)
     else:
+
+        # /home/johnd/.local/share
+        db_path_str = os.path.join(os.getenv('HOME'), '.local', 'share', db_name)
+        file_path = Path(db_path_str)
+        if file_path.is_file():
+            return file_path
         return os.path.join('/', 'Attendance', db_name)
 
 def getDbSession(db_path: str = getDbPath()):

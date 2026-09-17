@@ -9,6 +9,9 @@ fmtDate     = "%m/%d/%Y"
 fmtTime     = "%I:%M %p"
 dayNameAbbr = "%a"
 
+srceDatabase = "AttendanceV2_20260911.db"
+descDatabase = "AttendanceV3.db"
+
 tables = [
     'assets'
     'attendance'

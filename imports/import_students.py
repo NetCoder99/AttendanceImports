@@ -1,5 +1,6 @@
 import io
 import logging
+import traceback
 from datetime import datetime
 
 from dateutil.parser import parse
@@ -66,6 +67,7 @@ def importStudents(srce_db_name: str, dest_db_name: str):
             # #db_session_dest.commit()
 
     except Exception as ex:
+        traceback.print_exc()
         logger.error(str(ex))
         excep_list.append(ex)
 
